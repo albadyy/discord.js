@@ -1,0 +1,41 @@
+
+          node-version: 20
+          cache: pnpm
+
+      - name: التحقق من إعدادات Discord
+        shell: bash
+        run: |
+          if [[ -z "$DISCORD_TOKEN" || -z "$DISCORD_CLIENT_ID" || -z "$DISCORD_GUILD_ID" ]]; then
+            echo 'أضف DISCORD_TOKEN وDISCORD_CLIENT_ID وDISCORD_GUILD_ID كـ Repository secrets.'
+            exit 1
+          fi
+
+      - name: تثبيت الاعتماديات
+        run: pnpm install --frozen-lockfile --filter @lrp/mdt-bot...
+
+      - name: بناء اعتماديات البوت
+        run: pnpm --filter @lrp/mdt-bot... build
+
+      - name: تسجيل أمر MDT وتشغيل البوت
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @lrp/mdt-bot register
+          pnpm --filter @lrp/mdt-bot start > "$RUNNER_TEMP/lrp-mdt.log" 2>&1 &
+          bot_pid=$!
+          trap 'kill "$bot_pid" 2>/dev/null || true' EXIT
+
+          for _ in {1..30}; do
+            if grep -q 'LRP MDT متصل' "$RUNNER_TEMP/lrp-mdt.log"; then
+              echo 'تم اتصال LRP MDT بـ Discord.'
+              break
+            fi
+            if ! kill -0 "$bot_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/lrp-mdt.log"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          grep -q 'LRP MDT متصل' "$RUNNER_TEMP/lrp-mdt.log"
+          sleep "${{ inputs.duration }}m"
