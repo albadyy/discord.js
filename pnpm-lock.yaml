@@ -263,6 +263,15 @@ importers:
         specifier: ~5.9.3
         version: 5.9.3
 
+  apps/lrp-mdt-bot:
+    dependencies:
+      discord.js:
+        specifier: workspace:^
+        version: link:../../packages/discord.js
+      sharp:
+        specifier: ^0.32.6
+        version: 0.32.6
+
   apps/website:
     dependencies:
       '@opennextjs/cloudflare':
